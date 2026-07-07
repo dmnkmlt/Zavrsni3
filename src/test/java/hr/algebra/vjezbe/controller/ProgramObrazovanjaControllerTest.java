@@ -1,6 +1,8 @@
 package hr.algebra.vjezbe.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import hr.algebra.vjezbe.dto.AuthRequestDTO;
+import hr.algebra.vjezbe.dto.JwtResponseDTO;
 import hr.algebra.vjezbe.dto.ProgramObrazovanjaDto;
 import hr.algebra.vjezbe.repository.ProgramObrazovanjaRepository;
 import jakarta.transaction.Transactional;
@@ -9,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.hasSize;
@@ -33,8 +36,20 @@ public class ProgramObrazovanjaControllerTest {
 
     private ProgramObrazovanjaDto programObrazovanjaDto;
 
+    @Autowired
+    private AuthController authController;
+
+    private String accessToken;
+
     @BeforeEach
     public void setUp() throws Exception {
+
+        AuthRequestDTO authRequest = new AuthRequestDTO();
+        authRequest.setUsername("user");
+        authRequest.setPassword("user");
+
+        JwtResponseDTO jwtResponse = authController.authenticateAndGetToken(authRequest);
+        accessToken = jwtResponse.getAccessToken();
 
         programObrazovanjaDto = new ProgramObrazovanjaDto();
         programObrazovanjaDto.setNaziv("NekiJavaCourse");
@@ -45,7 +60,9 @@ public class ProgramObrazovanjaControllerTest {
     @Test
     public void testGetAll() throws Exception {
 
-        mockMvc.perform(get("/program-obrazovanja"))
+        mockMvc.perform(get("/program-obrazovanja")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].naziv", is("Java Course")))
@@ -55,7 +72,9 @@ public class ProgramObrazovanjaControllerTest {
     @Test
     public void testGetById() throws Exception {
 
-        mockMvc.perform(get("/program-obrazovanja/1"))
+        mockMvc.perform(get("/program-obrazovanja/1")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.naziv", is("Java Course")))
                 .andExpect(jsonPath("$.csvet", is(12)));
